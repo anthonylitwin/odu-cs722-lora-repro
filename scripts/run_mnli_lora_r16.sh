@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J mnli_lora_r4
+#SBATCH -J mnli_lora_r16
 #SBATCH -p gpu
 #SBATCH --gres=gpu:1
 #SBATCH -c 4
@@ -22,9 +22,9 @@ python3 code/train_roberta_glue.py \
   --model_name roberta-base \
   --task_name mnli \
   --method lora \
-  --lora_r 4 \
+  --lora_r 16 \
   --per_device_train_batch_size 16 \
   --per_device_eval_batch_size 32 \
   --learning_rate 5e-4 \
   --num_train_epochs 3 \
-  --output_dir /home/$USER/odu-cs722-lora-repro/checkpoints/mnli_lora_r4
+  --output_dir /home/$USER/odu-cs722-lora-repro/checkpoints/mnli_lora_r16
