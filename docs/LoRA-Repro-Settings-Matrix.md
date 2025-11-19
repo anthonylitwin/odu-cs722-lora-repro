@@ -8,13 +8,13 @@ This table includes the LoRA paper’s settings for RoBERTa-base, plus our inten
 |---------------------|-------------------------------------------------------------------------------|----------------------------------------------|------------------------------------------------------|-------------------------------------------------|
 | Model               | RoBERTa-base (125M)                                                           | Same                                         | —                                                    | —                                               |
 | Datasets            | MNLI, SST-2, MRPC, CoLA, QNLI, QQP, RTE, STS-B                                | MNLI (main), optionally MRPC/RTE             | —                                                    | MNLI is the standard benchmark to start with.   |
-| Max seq length      | **512** (main RoBERTa-base runs) <br> **128** (restricted adapter comparison) | 128–512 (your choice; 128 saves VRAM)        | —                                                    | Use 128 for consistency with adapter baselines. |
+| Max seq length      | **512** (main RoBERTa-base runs) <br> **128** (restricted adapter comparison) | 128–512 (our choice; 128 saves VRAM)        | —                                                    | Use 128 for consistency with adapter baselines. |
 | Batch size          | **16**                                                                        | 16                                           | —                                                    | Good for 1 GPU V100.                            |
 | Epochs              | **30** (MNLI)                                                                 | **3–10**                                     | —                                                    | We cannot afford 30 epochs; 3–5 is standard.    |
 | Optimizer           | AdamW                                                                         | Same                                         | —                                                    | —                                               |
 | Learning rate       | **5e-4**                                                                      | 5e-4                                         | —                                                    | —                                               |
 | Warmup              | 6%                                                                            | Optional                                     | —                                                    | Not essential for reproduction.                 |
-| LoRA ranks          | r = **8** (paper)                                                             | r = **1, 4, 8, 16** (your planned ablations) | —                                                    | We *should* run r = 1, 4, 8, 16.                |
+| LoRA ranks          | r = **8** (paper)                                                             | r = **1, 4, 8, 16** (our planned ablations) | —                                                    | We *should* run r = 1, 4, 8, 16.                |
 | LoRA α              | α = r or fixed (8)                                                            | α = r OR α=8                                 | Paper hand-waves this; α largely learning-rate-like. | —                                               |
 | LoRA target modules | **Wq and Wv only**                                                            | Same                                         | —                                                    | Don’t apply LoRA to FFN layers.                 |
 | Trainable params    | ~300k                                                                         | ~75k–600k                                    | —                                                    | Depends on r.                                   |
@@ -31,8 +31,6 @@ epochs = 3
 lora_r ∈ {1, 4, 8, 16}
 lora_alpha = lora_r
 modules = {q_proj, v_proj}
-optimizer = AdamW
-seeds = 3
 ```
 
 ## 2. GPT-2 Small / Medium – E2E NLG
@@ -64,8 +62,6 @@ lora_r ∈ {1, 4, 8, 16}
 lora_alpha = 32 (for r=4) or alpha = r
 target_modules = {q_proj, v_proj}
 seq_length = 128
-optimizer = AdamW
-seeds = 3
 ```
 
 ## 3. Required Ablation Studies
