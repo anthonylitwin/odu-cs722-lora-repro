@@ -1,7 +1,9 @@
 import argparse
 import os
+from typing import Dict, Any
 
 import numpy as np
+
 from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
@@ -59,12 +61,12 @@ def parse_args():
     parser.add_argument("--warmup_steps", type=int, default=500)
     parser.add_argument("--max_seq_length", type=int, default=128)
 
-    # Dataset / sampling
+    # Local data directory (CSV files)
     parser.add_argument(
-        "--dataset_name",
+        "--data_dir",
         type=str,
-        default="tuetschek/e2e_nlg",
-        help="Hugging Face dataset name for E2E NLG.",
+        default="data/e2e",
+        help="Directory containing trainset.csv, devset.csv, testset_w_refs.csv.",
     )
     parser.add_argument("--max_train_samples", type=int, default=None)
     parser.add_argument("--max_eval_samples", type=int, default=None)
@@ -130,12 +132,11 @@ def prepare_model_and_tokenizer(args) -> Dict[str, Any]:
     return {"model": model, "tokenizer": tokenizer}
 
 
-def format_mr(mr):
-    """Format the meaning representation (list or string) into a readable prompt."""
-    if isinstance(mr, list):
-        # Example: ["name[Wildwood]", "food[Italian]"] -> "name[Wildwood], food[Italian]"
-        return ", ".join(mr)
-    return str(mr)
+def format_mr(mr: str) -> str:
+    """Format the meaning representation string into a readable prompt."""
+    # In the CSVs from e2e-dataset, the field is just a string like:
+    #   name[Blue Spice], eatType[coffee shop], ...
+    return mr
 
 
 def main():
@@ -143,15 +144,28 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     set_seed(args.seed)
 
-    # 1. Load dataset
-    raw_datasets = load_dataset(args.dataset_name)
+    # 1. Load dataset from local CSV files (train/dev/test) :contentReference[oaicite:4]{index=4}
+    train_path = os.path.join(args.data_dir, "trainset.csv")
+    dev_path = os.path.join(args.data_dir, "devset.csv")
+    test_path = os.path.join(args.data_dir, "testset_w_refs.csv")
 
-    # Expect splits: train / validation / test
+    if not os.path.exists(train_path):
+        raise FileNotFoundError(f"Expected trainset.csv at {train_path}")
+    if not os.path.exists(dev_path):
+        raise FileNotFoundError(f"Expected devset.csv at {dev_path}")
+    if not os.path.exists(test_path):
+        raise FileNotFoundError(f"Expected testset_w_refs.csv at {test_path}")
+
+    data_files = {
+        "train": train_path,
+        "validation": dev_path,
+        "test": test_path,
+    }
+
+    raw_datasets = load_dataset("csv", data_files=data_files)
+
     train_dataset = raw_datasets["train"]
-    eval_dataset = raw_datasets.get("validation", None)
-    if eval_dataset is None and "validation" not in raw_datasets:
-        # Some variants might use "dev"; fallback is optional
-        eval_dataset = raw_datasets.get("dev", None)
+    eval_dataset = raw_datasets["validation"]
 
     # 2. Model & tokenizer
     mt = prepare_model_and_tokenizer(args)
@@ -161,13 +175,12 @@ def main():
     print_trainable_parameters(model)
 
     # 3. Preprocessing: create causal LM inputs from MR + reference text
-    # Dataset fields (for tuetschek/e2e_nlg): meaning_representation, human_reference :contentReference[oaicite:1]{index=1}
+    # CSV columns: 'mr' and 'ref' :contentReference[oaicite:5]{index=5}
     def preprocess_function(examples):
         texts = []
-        for mr, ref in zip(examples["meaning_representation"], examples["human_reference"]):
+        for mr, ref in zip(examples["mr"], examples["ref"]):
             mr_str = format_mr(mr)
-            # Simple prompt format: you can tweak this later
-            # We train the model to generate the whole "MR: ... Text: ..." sequence
+            # Simple prompt format; you can refine this later
             text = f"MR: {mr_str}\nText: {ref}"
             texts.append(text)
 
@@ -192,17 +205,14 @@ def main():
     if args.max_train_samples is not None:
         processed_train = processed_train.select(range(args.max_train_samples))
 
-    if eval_dataset is not None:
-        processed_eval = eval_dataset.map(
-            preprocess_function,
-            batched=True,
-            remove_columns=column_names,
-            desc="Tokenizing eval split",
-        )
-        if args.max_eval_samples is not None:
-            processed_eval = processed_eval.select(range(args.max_eval_samples))
-    else:
-        processed_eval = None
+    processed_eval = eval_dataset.map(
+        preprocess_function,
+        batched=True,
+        remove_columns=column_names,
+        desc="Tokenizing eval split",
+    )
+    if args.max_eval_samples is not None:
+        processed_eval = processed_eval.select(range(args.max_eval_samples))
 
     # 4. Data collator for causal LM
     data_collator = DataCollatorForLanguageModeling(
@@ -231,7 +241,6 @@ def main():
         seed=args.seed,
     )
 
-    # 6. Trainer (we start with loss-only; metrics like BLEU/ROUGE can be added later via generation)
     trainer = Trainer(
         model=model,
         args=training_args,
