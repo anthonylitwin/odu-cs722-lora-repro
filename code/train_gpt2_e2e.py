@@ -2,7 +2,7 @@ import argparse
 import os
 from typing import Dict, Any
 
-import numpy as np
+import numpy as np  # currently unused but handy if we add metrics later
 
 from datasets import load_dataset
 from transformers import (
@@ -18,7 +18,9 @@ from peft import LoraConfig, get_peft_model, TaskType
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Fine-tune GPT-2 on E2E NLG with LoRA / full / BitFit")
+    parser = argparse.ArgumentParser(
+        description="Fine-tune GPT-2 on E2E NLG with full / LoRA / BitFit."
+    )
 
     # Core model / method
     parser.add_argument(
@@ -59,7 +61,12 @@ def parse_args():
     parser.add_argument("--learning_rate", type=float, default=2e-4)
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--warmup_steps", type=int, default=500)
-    parser.add_argument("--max_seq_length", type=int, default=128)
+    parser.add_argument(
+        "--max_seq_length",
+        type=int,
+        default=128,
+        help="Maximum sequence length for tokenization.",
+    )
 
     # Local data directory (CSV files)
     parser.add_argument(
@@ -71,6 +78,16 @@ def parse_args():
     parser.add_argument("--max_train_samples", type=int, default=None)
     parser.add_argument("--max_eval_samples", type=int, default=None)
 
+    # Metrics configuration (for future evaluation)
+    parser.add_argument(
+        "--metrics",
+        type=str,
+        default="bleu,meteor,rougeL,cider",
+        help="Comma-separated list of metrics you plan to compute (e.g. 'bleu,meteor,rougeL,cider'). "
+             "Currently only logged; training is driven by loss.",
+    )
+
+    # Reproducibility
     parser.add_argument("--seed", type=int, default=42)
 
     args = parser.parse_args()
@@ -133,9 +150,11 @@ def prepare_model_and_tokenizer(args) -> Dict[str, Any]:
 
 
 def format_mr(mr: str) -> str:
-    """Format the meaning representation string into a readable prompt."""
-    # In the CSVs from e2e-dataset, the field is just a string like:
-    #   name[Blue Spice], eatType[coffee shop], ...
+    """Format the meaning representation string into a readable prompt.
+
+    In the CSVs from e2e-dataset, the field is just a string like:
+      name[Blue Spice], eatType[coffee shop], ...
+    """
     return mr
 
 
@@ -144,7 +163,9 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     set_seed(args.seed)
 
-    # 1. Load dataset from local CSV files (train/dev/test) :contentReference[oaicite:4]{index=4}
+    print(f"Planned metrics for evaluation (not yet computed here): {args.metrics}")
+
+    # 1. Load dataset from local CSV files (train/dev/test)
     train_path = os.path.join(args.data_dir, "trainset.csv")
     dev_path = os.path.join(args.data_dir, "devset.csv")
     test_path = os.path.join(args.data_dir, "testset_w_refs.csv")
@@ -175,7 +196,7 @@ def main():
     print_trainable_parameters(model)
 
     # 3. Preprocessing: create causal LM inputs from MR + reference text
-    # CSV columns: 'mr' and 'ref' :contentReference[oaicite:5]{index=5}
+    # CSV columns: 'mr' and 'ref'
     def preprocess_function(examples):
         texts = []
         for mr, ref in zip(examples["mr"], examples["ref"]):
@@ -237,7 +258,7 @@ def main():
         metric_for_best_model="loss",
         load_best_model_at_end=True,
         greater_is_better=False,
-        report_to="none",             # disable W&B, etc.
+        report_to="none",
         seed=args.seed,
     )
 
