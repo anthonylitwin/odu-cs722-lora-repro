@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J mnli_lora_r8
+#SBATCH -J e2e_gpt2small_lora_r8
 #SBATCH -p gpu
 #SBATCH --gres=gpu:1
 #SBATCH -c 4
@@ -15,18 +15,18 @@ export TOKENIZERS_PARALLELISM=false
 
 cd /home/$USER/odu-cs722-lora-repro
 
-python3 code/train_roberta_glue.py \
-  --model_name roberta-base \
-  --task_name mnli \
+python3 code/train_gpt2_e2e.py \
+  --model_name gpt2 \
   --method lora \
   --lora_r 8 \
-  --lora_alpha 8 \
+  --lora_alpha 32 \
   --lora_dropout 0.1 \
   --max_seq_length 128 \
-  --per_device_train_batch_size 16 \
-  --per_device_eval_batch_size 32 \
-  --learning_rate 5e-4 \
-  --warmup_steps 0 \
-  --num_train_epochs 3 \
+  --per_device_train_batch_size 8 \
+  --per_device_eval_batch_size 8 \
+  --learning_rate 2e-4 \
+  --warmup_steps 500 \
+  --num_train_epochs 5 \
   --seed 42 \
-  --output_dir /home/$USER/odu-cs722-lora-repro/checkpoints/mnli_lora_r8
+  --data_dir /home/$USER/odu-cs722-lora-repro/data/e2e \
+  --output_dir c/home/$USER/odu-cs722-lora-repro/heckpoints/e2e_gpt2small_lora_r8
