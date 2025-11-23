@@ -43,7 +43,7 @@ def process_file(path, filename):
     eval_accuracy = extract_last_kv(text, "eval_accuracy")
 
     # Identify MNLI vs GPT2-E2E
-    if filename.startswith("run_mnli"):
+    if filename.startswith("mnli"):
         method = detect_method(filename)
         MNLI_ROWS.append({
             "filename": filename,
@@ -55,7 +55,7 @@ def process_file(path, filename):
             "eval_accuracy": eval_accuracy,
             "train_runtime": train_runtime,
         })
-    elif filename.startswith("run_e2e"):
+    elif filename.startswith("e2e"):
         method = detect_method(filename)
         E2E_ROWS.append({
             "filename": filename,
