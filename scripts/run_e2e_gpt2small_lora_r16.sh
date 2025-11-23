@@ -29,4 +29,4 @@ python3 code/train_gpt2_e2e.py \
   --num_train_epochs 5 \
   --seed 42 \
   --data_dir /home/$USER/odu-cs722-lora-repro/data/e2e \
-  --output_dir c/home/$USER/odu-cs722-lora-repro/heckpoints/e2e_gpt2small_lora_r16
+  --output_dir home/$USER/odu-cs722-lora-repro/checkpoints/e2e_gpt2small_lora_r16

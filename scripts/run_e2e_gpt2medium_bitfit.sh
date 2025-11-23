@@ -25,4 +25,4 @@ python3 code/train_gpt2_e2e.py \
   --num_train_epochs 5 \
   --seed 42 \
   --data_dir data/e2e \
-  --output_dir checkpoints/e2e_gpt2medium_bitfit
+  --output_dir /home/$USER/odu-cs722-lora-repro/checkpoints/e2e_gpt2medium_bitfit
