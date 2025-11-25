@@ -33,7 +33,7 @@ logs/
 *.out
 *.err
 
-results/generated_outputs*.txt
+# results/generated_outputs*.txt
 
 # SLURM job outputs (general safety)
 slurm-*.out
