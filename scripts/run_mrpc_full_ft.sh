@@ -22,8 +22,8 @@ python3 code/train_roberta_glue.py \
   --max_seq_length 512 \
   --per_device_train_batch_size 16 \
   --per_device_eval_batch_size 32 \
-  --learning_rate 4e-4 \
-  --warmup_steps 414 \
-  --num_train_epochs 30 \
+  --learning_rate 2e-5 \
+  --warmup_steps 40 \
+  --num_train_epochs 3 \
   --seed 42 \
   --output_dir /home/$USER/odu-cs722-lora-repro/checkpoints/mrpc_full_ft
